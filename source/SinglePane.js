@@ -105,13 +105,6 @@ enyo.kind({
 			]}
 		]},
 
-            { kind: "ModalDialog", name: "invalidISBNDialog", caption: "This is not a valid ISBN.",
-              components: [
-                { layoutKind: "HFlexLayout", pack: "center", components: [
-                    { kind: "Button", caption: "OK", onclick: "confirmClickInvalidISBN" }
-                ] }
-            ] },
-
 		{kind:"ModalDialog",lazy:false,name:"manualAddDialog",caption:"Manually Add Item",width:"500px", height:"90%",onBeforeOpen:"setupManualDialog", components:[
 			{kind: "BasicScroller",height:"370px", autoVertical:true,autoHorizontal:true, components:[
 				{kind: "RowGroup", caption:"Details",components:[
@@ -3175,7 +3168,7 @@ enyo.kind({
 					this.$.booksAPI.call({isbn:kw, limit:50})
                                     } else {
                                         inSender.setActive(false);
-                                        this.$.invalidISBNDialog.openAtCenter();
+		                        this.showErrorDialog('This is not a valid ISBN. Please check if you entered a wrong digit.');
                                         return;
                                     }
 				}
@@ -4737,7 +4730,4 @@ enyo.kind({
         }
     },
 
-    confirmClickInvalidISBN: function() {
-        this.$.invalidISBNDialog.close();
-    }
 });
