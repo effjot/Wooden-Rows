@@ -85,9 +85,9 @@ enyo.kind({
 		{kind: "ModalDialog", name:"addItemDialog", scrim:false, caption: "Add Item", width: "500px",components:[
 			{kind:"Divider", caption:"Type of Item"},
 			{kind: "HFlexBox", name:"addItemIcons", pack:"center",align:"end",components:[
-				{kind: "Image", src:"images/movie-button.png", onclick: "setSearchType", type:"DVD", className: "icon-selected"},
-				{kind: "Image", src:"images/book-button.png", onclick: "setSearchType", type:"Books", className: "icon-unselected"},
+				{kind: "Image", src:"images/book-button.png", onclick: "setSearchType", type:"Books", className: "icon-selected"},
 				{kind: "Image", src:"images/music-button.png", onclick: "setSearchType", type:"Music", className: "icon-unselected"},
+				{kind: "Image", src:"images/movie-button.png", onclick: "setSearchType", type:"DVD", className: "icon-unselected"},
 				{kind: "Image", src:"images/game-button.png", onclick: "setSearchType", type:"VideoGames", className: "icon-unselected"}
 				
 			]},
@@ -104,6 +104,14 @@ enyo.kind({
 				{kind: "Button", caption: "Add Manually", onclick:"openDialog",dialog:"manualAddDialog", className:"enyo-button-secondary"}
 			]}
 		]},
+
+            { kind: "ModalDialog", name: "invalidISBNDialog", caption: "This is not a valid ISBN.",
+              components: [
+                { layoutKind: "HFlexLayout", pack: "center", components: [
+                    { kind: "Button", caption: "OK", onclick: "confirmClickInvalidISBN" }
+                ] }
+            ] },
+
 		{kind:"ModalDialog",lazy:false,name:"manualAddDialog",caption:"Manually Add Item",width:"500px", height:"90%",onBeforeOpen:"setupManualDialog", components:[
 			{kind: "BasicScroller",height:"370px", autoVertical:true,autoHorizontal:true, components:[
 				{kind: "RowGroup", caption:"Details",components:[
@@ -1169,7 +1177,7 @@ enyo.kind({
 		this.$.emptyLibrary.hide();
 	    this.$.syncSpinner.hide();
 	    this.loadCount=0;
-    	this.searchType="DVD";
+    	this.searchType="Books";
     	this.filterBy='';
     	this.addDialogMode="add";
     	this.musicSource="discogs";
@@ -3163,7 +3171,13 @@ enyo.kind({
 					//then we have a upc, not an ISBN
 					this.$.barcodeAPI.call(upcData);
 				}else{
-					this.$.booksAPI.call({isbn:kw, limit:50});
+                                    if (this.isValidISBN(kw)) {
+					this.$.booksAPI.call({isbn:kw, limit:50})
+                                    } else {
+                                        inSender.setActive(false);
+                                        this.$.invalidISBNDialog.openAtCenter();
+                                        return;
+                                    }
 				}
 				break;
 			case "VideoGames":
@@ -4687,5 +4701,43 @@ enyo.kind({
   		  	enyo.keyboard.setManualMode(false);
   		}
   	}
-  }
+  },
+
+    isValidISBN: function(isbn) {
+        /* from http://en.wikipedia.org/wiki/International_Standard_Book_Number#Check_digits
+           and http://neilang.com/entries/how-to-check-if-an-isbn-is-valid-in-javascript/ */
+
+        var check, chars, i, sum;
+        isbn = isbn.replace(/[^\dX]/gi,'');
+
+        if (isbn.length == 13) {
+
+            check = 0;
+            for (i = 0; i < 13; i += 2) {
+                check += +isbn[i];
+            }
+            for (i = 1; i < 12; i += 2){
+                check += 3 * +isbn[i];
+            }
+            return check % 10 === 0;
+
+        } else if (isbn.length == 10) {
+
+            chars = isbn.split('');
+            if (chars[9].toUpperCase() == 'X' ){
+                chars[9] = 10;
+            }
+            sum = 0;
+            for (var i = 0; i < chars.length; i++) {
+                sum += ((10-i) * parseInt(chars[i])); 
+            };
+            return ((sum % 11) == 0);
+        } else {
+            return false;
+        }
+    },
+
+    confirmClickInvalidISBN: function() {
+        this.$.invalidISBNDialog.close();
+    }
 });
